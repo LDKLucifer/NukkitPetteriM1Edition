@@ -20,13 +20,14 @@ public enum InventoryType {
     DISPENSER(9, "Dispenser", 6), //9 CONTAINER
     DROPPER(9, "Dropper", 7), //9 CONTAINER
     HOPPER(5, "Hopper", 8), //5 CONTAINER
-    CURSOR(1, "Cursor", -1), //1 CONTAINER
+    UI(1, "UI", -1), //1 CONTAINER
     SHULKER_BOX(27, "Shulker Box", 0), //27 CONTAINER
     BEACON(1, "Beacon", 13), //1 INPUT
     ENTITY_ARMOR(4, "Entity Armor", -1), //4 ARMOR
     ENTITY_EQUIPMENT(36, "Entity Equipment", -1), //36 CONTAINER
     MINECART_CHEST(27, "Minecart with Chest", 0), //27 CONTAINER
-    MINECART_HOPPER(5, "Minecart with Hopper", 8); //5 CONTAINER
+    MINECART_HOPPER(5, "Minecart with Hopper", 8), //5 CONTAINER
+    OFFHAND(1, "Offhand", -1); //1 CONTAINER
 
     private final int size;
     private final String title;
