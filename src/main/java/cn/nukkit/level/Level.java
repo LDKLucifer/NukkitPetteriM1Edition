@@ -793,7 +793,9 @@ public class Level implements ChunkManager, Metadatable {
             }
         }
 
-        this.skyLightSubtracted = this.calculateSkylightSubtracted(1);
+        if (Server.getInstance().lightUpdates) {
+            this.skyLightSubtracted = this.calculateSkylightSubtracted(1);
+        }
 
         this.levelCurrentTick++;
 
@@ -3232,9 +3234,9 @@ public class Level implements ChunkManager, Metadatable {
     private int lastUnloadIndex;
 
     /**
-     * @param now
-     * @param allocatedTime
-     * @param force
+     * @param now current time
+     * @param allocatedTime allocated time
+     * @param force force
      * @return true if there is allocated time remaining
      */
     private boolean unloadChunks(long now, long allocatedTime, boolean force) {
