@@ -41,7 +41,6 @@ import cn.nukkit.inventory.transaction.data.UseItemData;
 import cn.nukkit.inventory.transaction.data.UseItemOnEntityData;
 import cn.nukkit.item.*;
 import cn.nukkit.item.enchantment.Enchantment;
-import cn.nukkit.item.food.Food;
 import cn.nukkit.lang.TextContainer;
 import cn.nukkit.lang.TranslationContainer;
 import cn.nukkit.level.*;
@@ -64,7 +63,6 @@ import cn.nukkit.permission.PermissionAttachment;
 import cn.nukkit.permission.PermissionAttachmentInfo;
 import cn.nukkit.plugin.Plugin;
 import cn.nukkit.potion.Effect;
-import cn.nukkit.potion.Potion;
 import cn.nukkit.resourcepacks.ResourcePack;
 import cn.nukkit.scheduler.AsyncTask;
 import cn.nukkit.utils.*;
@@ -4457,7 +4455,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         this.addWindow(this.craftingGrid, ContainerIds.NONE);
     }
 
-    public PlayerUIInventory getPlayerUIInventory() {
+    public PlayerUIInventory getUIInventory() {
         return playerUIInventory;
     }
 
