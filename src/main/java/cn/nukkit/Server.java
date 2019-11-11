@@ -252,6 +252,8 @@ public class Server {
 
         if (!this.getPropertyBoolean("ansi-title", true)) Nukkit.TITLE = false;
 
+        this.loadSettings();
+
         if (!new File(dataPath + "players/").exists() && this.shouldSavePlayerData) {
             new File(dataPath + "players/").mkdirs();
         }
@@ -318,8 +320,6 @@ public class Server {
                 break;
             }
         }
-
-        this.loadSettings();
 
         log.info(this.baseLang.translateString("nukkit.server.networkStart", new String[]{this.getIp().isEmpty() ? "*" : this.getIp(), String.valueOf(this.getPort())}));
         this.serverID = UUID.randomUUID();
