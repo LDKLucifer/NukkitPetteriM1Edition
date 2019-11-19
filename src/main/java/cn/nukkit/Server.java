@@ -193,6 +193,7 @@ public class Server {
     private int port;
     private int viewDistance;
     private int gamemode;
+    private int skinChangeCooldown;
     private boolean suomicraftMode;
     private boolean doLevelGC;
     private boolean mobAI;
@@ -200,6 +201,9 @@ public class Server {
     private boolean getAllowFlight;
     private boolean isHardcore;
     private boolean callBatchPkEv;
+    private boolean forceResources;
+    private boolean whitelistEnabled;
+    private boolean forceGamemode;
     public int despawnTicks;
     public boolean netherEnabled;
     public boolean xboxAuth;
@@ -213,6 +217,7 @@ public class Server {
     boolean endEnabled;
     boolean pvp;
     boolean announceAchievements;
+    boolean checkOpMovement;
     public boolean blockListener;
     public boolean explosionBreakBlocks;
     public boolean vanillaBB;
@@ -221,9 +226,6 @@ public class Server {
     public boolean lightUpdates;
     public boolean queryPlugins;
     public boolean despawnEntities;
-    public boolean forceResources;
-    public boolean whitelistEnabled;
-    public boolean forceGamemode;
 
     Server(final String filePath, String dataPath, String pluginPath) {
         Preconditions.checkState(instance == null, "Already initialized!");
@@ -918,10 +920,7 @@ public class Server {
     }
 
     public void updatePlayerListData(UUID uuid, long entityId, String name, Skin skin, String xboxUserId, Collection<Player> players) {
-        this.updatePlayerListData(uuid, entityId, name, skin, xboxUserId,
-                players.stream()
-                        .filter(p -> !p.getUniqueId().equals(uuid))
-                        .toArray(Player[]::new));
+        this.updatePlayerListData(uuid, entityId, name, skin, xboxUserId, players.toArray(new Player[0]));
     }
 
     public void removePlayerListData(UUID uuid) {
@@ -1584,7 +1583,7 @@ public class Server {
 
     public Level getLevelByName(String name) {
         for (Level level : this.levelArray) {
-            if (level.getFolderName().equals(name)) {
+            if (level.getFolderName().equalsIgnoreCase(name)) {
                 return level;
             }
         }
@@ -1874,6 +1873,10 @@ public class Server {
         return shouldSavePlayerData;
     }
 
+    public int getPlayerSkinChangeCooldown() {
+        return skinChangeCooldown;
+    }
+
     /**
      * Checks the current thread against the expected primary thread for the server.
      *
@@ -2069,12 +2072,14 @@ public class Server {
         this.despawnEntities = this.getPropertyBoolean("entity-despawn-task", true);
         this.forceResources = this.getPropertyBoolean("force-resources", false);
         this.whitelistEnabled = this.getPropertyBoolean("white-list", false);
+        this.checkOpMovement = this.getPropertyBoolean("check-op-movement", false);
         this.forceGamemode = this.getPropertyBoolean("force-gamemode", true);
         this.motd = this.getPropertyString("motd", "Minecraft Server");
         this.viewDistance = this.getPropertyInt("view-distance", 8);
         this.despawnTicks = this.getPropertyInt("ticks-per-entity-despawns", 6000);
         this.port = this.getPropertyInt("server-port", 19132);
         this.ip = this.getPropertyString("server-ip", "0.0.0.0");
+        this.skinChangeCooldown = this.getPropertyInt("skin-change-cooldown", 30);
         try {
             this.gamemode = this.getPropertyInt("gamemode", 0) & 0b11;
         } catch (NumberFormatException exception) {
@@ -2176,6 +2181,8 @@ public class Server {
             put("call-data-pk-send-event", true);
             put("call-batch-pk-send-event", true);
             put("do-level-gc", true);
+            put("skin-change-cooldown", 30);
+            put("check-op-movement", false);
         }
     }
 

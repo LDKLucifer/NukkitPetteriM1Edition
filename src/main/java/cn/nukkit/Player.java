@@ -88,6 +88,7 @@ import java.nio.ByteOrder;
 import java.util.List;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
@@ -219,8 +220,6 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
     private BlockEnderChest viewingEnderChest = null;
 
-    protected int lastEnderPearl = 20;
-
     private LoginChainData loginChainData;
 
     public Block breakingBlock = null;
@@ -236,7 +235,9 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     private AsyncTask preLoginEventTask = null;
     protected boolean shouldLogin = false;
 
+    private int lastEnderPearl = 20;
     public int lastInteraction = 5;
+    public long lastSkinChange = -1;
     
     public EntityFishingHook fishing = null;
 
@@ -1444,7 +1445,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             }
 
             if (diffX != 0 || diffY != 0 || diffZ != 0) {
-                if (this.checkMovement && !isOp() && !server.getAllowFlight() && (this.isSurvival() || this.isAdventure())) {
+                if (this.checkMovement && !server.getAllowFlight() && (this.isSurvival() || this.isAdventure())) {
                     if (!this.isSleeping() && this.riding == null && !this.hasEffect(Effect.LEVITATION)) {
                         if ((diffX * diffX + diffZ * diffZ) / ((double) (tickDiff * tickDiff)) > 0.5 ) {
                             PlayerInvalidMoveEvent ev;
@@ -1684,20 +1685,16 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                     this.heal(1);
                 }
 
-                PlayerFood foodData = this.foodData;
-
-                if (foodData.getLevel() < 20 && this.age % 10 == 0) {
-                    foodData.addFoodLevel(1, 0);
+                if (this.foodData.getLevel() < 20 && this.age % 10 == 0) {
+                    this.foodData.addFoodLevel(1, 0);
                 }
             }
 
             if (this.isOnFire() && this.lastUpdate % 10 == 0) {
                 if (this.isCreative() && !this.isInsideOfFire()) {
                     this.extinguish();
-                } else if (this.getLevel().isRaining()) {
-                    if (this.getLevel().canBlockSeeSky(this)) {
-                        this.extinguish();
-                    }
+                } else if (this.getLevel().isRaining() && this.getLevel().canBlockSeeSky(this)) {
+                    this.extinguish();
                 }
             }
 
@@ -1714,16 +1711,20 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                         double diff = (this.speed.y - expectedVelocity) * (this.speed.y - expectedVelocity);
 
                         int block = level.getBlock(this).getId();
-                        boolean ignore = block == Block.LADDER || block == Block.VINES || block == Block.COBWEB;
-                         if (!this.hasEffect(Effect.JUMP) && diff > 0.6 && expectedVelocity < this.speed.y && !ignore) {
-                            if (this.inAirTicks < 200) {
-                                this.setMotion(new Vector3(0, expectedVelocity, 0));
-                            } else if (this.kick(PlayerKickEvent.Reason.FLYING_DISABLED, "Flying is not enabled on this server")) {
-                                return false;
-                            }
-                        }
-                        if (ignore) {
+                        if (block == Block.LADDER || block == Block.VINES || block == Block.COBWEB) {
                             this.resetFallDistance();
+                        } else {
+                            if (!this.hasEffect(Effect.JUMP) && diff > 0.6 && expectedVelocity < this.speed.y) {
+                                if (this.inAirTicks < 200) {
+                                    PlayerInvalidMoveEvent ev = new PlayerInvalidMoveEvent(this, true);
+                                    this.getServer().getPluginManager().callEvent(ev);
+                                    if (!ev.isCancelled()) {
+                                        this.setMotion(new Vector3(0, expectedVelocity, 0));
+                                    }
+                                } else if (this.kick(PlayerKickEvent.Reason.FLYING_DISABLED, "Flying is not enabled on this server")) {
+                                    return false;
+                                }
+                            }
                         }
                     }
 
@@ -2030,6 +2031,10 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
                 this.inventory.sendHeldItem(this);
                 this.server.sendRecipeList(this);
+
+                if (this.isOp() && !server.checkOpMovement) {
+                    this.setCheckMovement(false);
+                }
             } catch (Exception e) {
                 this.close("", "Internal Server Error");
                 getServer().getLogger().logException(e);
@@ -2234,6 +2239,22 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                     dataPacket.data = resourcePack.getPackChunk(1048576 * requestPacket.chunkIndex, 1048576);
                     dataPacket.progress = 1048576 * requestPacket.chunkIndex;
                     this.dataPacket(dataPacket);
+                    break;
+                case ProtocolInfo.PLAYER_SKIN_PACKET:
+                    PlayerSkinPacket skinPacket = (PlayerSkinPacket) packet;
+                    Skin skin = skinPacket.skin;
+
+                    if (!skin.isValid()) {
+                        break;
+                    }
+
+                    PlayerChangeSkinEvent playerChangeSkinEvent = new PlayerChangeSkinEvent(this, skin);
+                    playerChangeSkinEvent.setCancelled(TimeUnit.SECONDS.toMillis(this.server.getPlayerSkinChangeCooldown()) > System.currentTimeMillis() - this.lastSkinChange);
+                    this.server.getPluginManager().callEvent(playerChangeSkinEvent);
+                    if (!playerChangeSkinEvent.isCancelled()) {
+                        this.lastSkinChange = System.currentTimeMillis();
+                        this.setSkin(skin);
+                    }
                     break;
                 case ProtocolInfo.PLAYER_INPUT_PACKET:
                     if (!this.isAlive() || !this.spawned) {
