@@ -64,6 +64,7 @@ import cn.nukkit.permission.PermissionAttachment;
 import cn.nukkit.permission.PermissionAttachmentInfo;
 import cn.nukkit.plugin.Plugin;
 import cn.nukkit.potion.Effect;
+import cn.nukkit.potion.Potion;
 import cn.nukkit.resourcepacks.ResourcePack;
 import cn.nukkit.scheduler.AsyncTask;
 import cn.nukkit.utils.*;
@@ -236,8 +237,9 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     protected boolean shouldLogin = false;
 
     private int lastEnderPearl = 20;
-    public int lastInteraction = 5;
     public long lastSkinChange = -1;
+    private double lastRightClickTime = 0.0;
+    private Vector3 lastRightClickPos = null;
     
     public EntityFishingHook fishing = null;
 
@@ -304,7 +306,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     public void setBanned(boolean value) {
         if (value) {
             this.server.getNameBans().addBan(this.username, null, null, null);
-            this.kick(PlayerKickEvent.Reason.NAME_BANNED, "Banned!");
+            this.kick(PlayerKickEvent.Reason.NAME_BANNED, "\u00A7cYou are banned!");
         } else {
             this.server.getNameBans().remove(this.username);
         }
@@ -759,12 +761,12 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             int count = 0;
             ObjectIterator<Long2ObjectMap.Entry<Boolean>> iter = loadQueue.long2ObjectEntrySet().fastIterator();
             while (iter.hasNext()) {
-                Long2ObjectMap.Entry<Boolean> entry = iter.next();
-                long index = entry.getLongKey();
-
                 if (count >= this.chunksPerTick) {
                     break;
                 }
+
+                Long2ObjectMap.Entry<Boolean> entry = iter.next();
+                long index = entry.getLongKey();
                 int chunkX = Level.getHashX(index);
                 int chunkZ = Level.getHashZ(index);
 
@@ -1859,10 +1861,10 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             this.kick(PlayerKickEvent.Reason.NOT_WHITELISTED, this.getServer().getPropertyString("whitelist-reason", "Server is white-listed").replace("§n", "\n"));
             return;
         } else if (this.isBanned()) {
-            this.kick(PlayerKickEvent.Reason.NAME_BANNED, "You are banned");
+            this.kick(PlayerKickEvent.Reason.NAME_BANNED, "\u00A7cYou are banned! Reason: " + this.server.getNameBans().getEntires().get(this.getName().toLowerCase()).getReason());
             return;
         } else if (this.server.getIPBans().isBanned(this.getAddress())) {
-            this.kick(PlayerKickEvent.Reason.IP_BANNED, "You are banned");
+            this.kick(PlayerKickEvent.Reason.IP_BANNED, "\u00A7cYou are banned! Reason: " + this.server.getNameBans().getEntires().get(this.getName().toLowerCase()).getReason());
             return;
         }
 
@@ -2969,6 +2971,14 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
                             switch (type) {
                                 case InventoryTransactionPacket.USE_ITEM_ACTION_CLICK_BLOCK:
+                                    // Hack: Fix client spamming right clicks
+                                    if ((lastRightClickPos != null && System.currentTimeMillis() - lastRightClickTime < 200.0 && blockVector.distanceSquared(lastRightClickPos) < 0.00001)) {
+                                        return;
+                                    }
+
+                                    lastRightClickPos = blockVector.asVector3();
+                                    lastRightClickTime = System.currentTimeMillis();
+
                                     this.setDataFlag(DATA_FLAGS, DATA_FLAG_ACTION, false);
 
                                     if (this.canInteract(blockVector.add(0.5, 0.5, 0.5), this.isCreative() ? 13 : 7)) {
@@ -3208,6 +3218,30 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                                             this.setUsingItem(false);
                                         } else {
                                             this.inventory.sendContents(this);
+                                        }
+                                        return;
+                                    case InventoryTransactionPacket.RELEASE_ITEM_ACTION_CONSUME:
+                                        if (this.protocol >= 388) break; // Usage of potions on 1.13 and later is handled at ItemPotion#onUse
+                                        Item itemInHand = this.inventory.getItemInHand();
+                                        PlayerItemConsumeEvent consumeEvent = new PlayerItemConsumeEvent(this, itemInHand);
+
+                                        if (itemInHand.getId() == Item.POTION) {
+                                            this.server.getPluginManager().callEvent(consumeEvent);
+                                            if (consumeEvent.isCancelled()) {
+                                                this.inventory.sendContents(this);
+                                                break;
+                                            }
+                                            Potion potion = Potion.getPotion(itemInHand.getDamage());
+
+                                            if (this.gamemode == SURVIVAL) {
+                                                --itemInHand.count;
+                                                this.inventory.setItemInHand(itemInHand);
+                                                this.inventory.addItem(new ItemGlassBottle());
+                                            }
+
+                                            if (potion != null) {
+                                                potion.applyPotion(this);
+                                            }
                                         }
                                         return;
                                     default:
@@ -3865,11 +3899,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         pk.z = (float) pos.z;
         pk.respawnState = RespawnPacket.STATE_SEARCHING_FOR_SPAWN;
 
-        // HACK: fix chunk loading when respawning
-        if (this.level != pos.level) {
-            this.teleport(new Location(pos.x, -100, pos.z, pos.level), null);
-            this.teleport(new Location(pos.x, pos.y, pos.z, pos.level), null);
-        }
+        this.teleport(pos, null);
 
         this.dataPacket(pk);
     }

@@ -1444,8 +1444,7 @@ public class Level implements ChunkManager, Metadatable {
     }
 
     public int calculateSkylightSubtracted(float tickDiff) {
-        float angle = this.calculateCelestialAngle(getTime(), tickDiff);
-        float light = 1 - (MathHelper.cos(angle * (6.2831855f)) * 2 + 0.5f);
+        float light = 1 - (MathHelper.cos(this.calculateCelestialAngle(getTime(), tickDiff) * (6.2831855f)) * 2 + 0.5f);
         light = light < 0 ? 0 : light > 1 ? 1 : light;
         light = 1 - light;
         light = (float) ((double) light * ((raining ? 1 : 0) - 0.3125));
@@ -1968,6 +1967,7 @@ public class Level implements ChunkManager, Metadatable {
     }
 
     public void dropExpOrb(Vector3 source, int exp, Vector3 motion, int delay) {
+        if (exp == 0) return;
         motion = (motion == null) ? new Vector3(Utils.random.nextDouble() * 0.2 - 0.1, 0.2,
                 Utils.random.nextDouble() * 0.2 - 0.1) : motion;
         CompoundTag nbt = new CompoundTag()
@@ -2009,20 +2009,8 @@ public class Level implements ChunkManager, Metadatable {
             return null;
         }
 
-        final List<Integer> ignore = new ArrayList<>(
-                Arrays.asList(Block.ANVIL, Block.BEACON, Block.BED_BLOCK, Block.BREWING_STAND_BLOCK, Block.CAULDRON_BLOCK, Block.CHEST, Block.TRAPPED_CHEST,
-                Block.ENDER_CHEST, Block.DISPENSER, Block.DROPPER, Block.WOODEN_DOOR_BLOCK, Block.BIRCH_DOOR_BLOCK, Block.ACACIA_DOOR_BLOCK, Block.SPRUCE_DOOR_BLOCK,
-                Block.DARK_OAK_DOOR_BLOCK, Block.JUNGLE_DOOR_BLOCK, Block.TRAPDOOR, Block.ENCHANT_TABLE, Block.FURNACE, Block.LIT_FURNACE, Block.HOPPER_BLOCK,
-                Block.ITEM_FRAME_BLOCK, Block.JUKEBOX, Block.SHULKER_BOX, Block.UNDYED_SHULKER_BOX, Block.MONSTER_SPAWNER, Block.DAYLIGHT_DETECTOR,
-                Block.DAYLIGHT_DETECTOR_INVERTED, Block.END_PORTAL_FRAME, Block.DRAGON_EGG, Block.COMMAND_BLOCK, Block.CHAIN_COMMAND_BLOCK, Block.REPEATING_COMMAND_BLOCK,
-                Block.FLOWER_POT_BLOCK, Block.REDSTONE_ORE, Block.FENCE_GATE, Block.LEVER, Block.STONE_BUTTON, Block.WOODEN_BUTTON, Block.POWERED_REPEATER, Block.UNPOWERED_REPEATER,
-                Block.POWERED_COMPARATOR, Block.UNPOWERED_COMPARATOR, Block.OBSERVER, Block.FENCE_GATE_BIRCH, Block.FENCE_GATE_ACACIA, Block.FENCE_GATE_SPRUCE, Block.FENCE_GATE_JUNGLE,
-                Block.FENCE_GATE_DARK_OAK));
-
-        if (player != null && (!(this.server.getTick() - player.lastInteraction < 5) || ignore.contains(target.getId()))) {
+        if (player != null) {
             PlayerInteractEvent ev = new PlayerInteractEvent(player, item, target, face, target.getId() == 0 ? Action.RIGHT_CLICK_AIR : Action.RIGHT_CLICK_BLOCK);
-
-            player.lastInteraction = this.server.getTick();
 
             if (player.getGamemode() > Player.ADVENTURE) {
                 ev.setCancelled();
@@ -3099,8 +3087,7 @@ public class Level implements ChunkManager, Metadatable {
                         }
                     }
 
-                    PopulationTask task = new PopulationTask(this, chunk);
-                    this.server.getScheduler().scheduleAsyncTask(task);
+                    this.server.getScheduler().scheduleAsyncTask(new PopulationTask(this, chunk));
                 }
             }
             Timings.populationTimer.stopTiming();
