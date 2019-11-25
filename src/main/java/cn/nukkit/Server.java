@@ -218,6 +218,7 @@ public class Server {
     boolean pvp;
     boolean announceAchievements;
     boolean checkOpMovement;
+    boolean doNotLimitInteractions;
     public boolean blockListener;
     public boolean explosionBreakBlocks;
     public boolean vanillaBB;
@@ -603,11 +604,12 @@ public class Server {
                 p.encode();
             }
             byte[] buf = p.getBuffer();
-            payload[i * 2] = Binary.writeUnsignedVarInt(buf.length);
-            payload[i * 2 + 1] = buf;
+            int i2 = i * 2;
+            payload[i2] = Binary.writeUnsignedVarInt(buf.length);
+            payload[i2 + 1] = buf;
             packets[i] = null;
-            size += payload[i * 2].length;
-            size += payload[i * 2 + 1].length;
+            size += payload[i2].length;
+            size += payload[i2 + 1].length;
         }
 
         List<InetSocketAddress> targets = new ArrayList<>();
@@ -2074,6 +2076,7 @@ public class Server {
         this.whitelistEnabled = this.getPropertyBoolean("white-list", false);
         this.checkOpMovement = this.getPropertyBoolean("check-op-movement", false);
         this.forceGamemode = this.getPropertyBoolean("force-gamemode", true);
+        this.doNotLimitInteractions = this.getPropertyBoolean("do-not-limit-interactions", false);
         this.motd = this.getPropertyString("motd", "Minecraft Server");
         this.viewDistance = this.getPropertyInt("view-distance", 8);
         this.despawnTicks = this.getPropertyInt("ticks-per-entity-despawns", 6000);
@@ -2183,6 +2186,7 @@ public class Server {
             put("do-level-gc", true);
             put("skin-change-cooldown", 30);
             put("check-op-movement", false);
+            put("do-not-limit-interactions", false);
         }
     }
 
