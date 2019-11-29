@@ -1067,7 +1067,8 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             return false;
         }
 
-        for (Entity p : this.level.getNearbyEntities(this.boundingBox.grow(2, 1, 2), this)) {
+        Entity[] e = this.level.getNearbyEntities(this.boundingBox.grow(2, 1, 2), this);
+        for (Entity p : e) {
             if (p instanceof Player) {
                 if (((Player) p).sleeping != null && pos.distance(((Player) p).sleeping) <= 0.1) {
                     return false;
@@ -1398,7 +1399,8 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     }
 
     protected void checkNearEntities() {
-        for (Entity entity : this.level.getNearbyEntities(this.boundingBox.grow(1, 0.5, 1), this)) {
+        Entity[] e = this.level.getNearbyEntities(this.boundingBox.grow(1, 0.5, 1), this);
+        for (Entity entity : e) {
             entity.scheduleUpdate();
 
             if (!entity.isAlive() || !this.isAlive()) {
@@ -3311,8 +3313,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     }
 
     /**
-     * Sends a chat message as this player. If the message begins with a / (forward-slash) it will be treated
-     * as a command.
+     * Sends a chat message as this player
      * @param message message to send
      * @return successful
      */
@@ -3815,15 +3816,15 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                         message = "death.attack.explosion";
                     }
                     break;
-
                 case MAGIC:
                     message = "death.attack.magic";
                     break;
-
+                case LIGHTNING:
+                    message = "death.attack.lightningBolt";
+                    break;
                 case HUNGER:
                     message = "death.attack.starve";
                     break;
-
                 default:
                     message = "death.attack.generic";
                     break;
@@ -3880,13 +3881,11 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         }
 
         if (!ev.getKeepExperience() && this.level.getGameRules().getBoolean(GameRule.DO_ENTITY_DROPS)) {
-            if (!this.isCreative()) {
+            if (this.isSurvival() || this.isAdventure()) {
                 int exp = ev.getExperience() * 7;
-                if (exp > 100) exp = 100;
-                int add = 1;
-                for (int ii = 1; ii < exp; ii += add) {
-                    this.getLevel().dropExpOrb(this, add);
-                    add = Utils.rand(1, 3);
+                if (exp > 0) {
+                    if (exp > 100) exp = 100;
+                    this.getLevel().dropExpOrb(this, exp);
                 }
             }
             this.setExperience(0, 0);

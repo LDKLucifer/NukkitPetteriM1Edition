@@ -366,7 +366,7 @@ public abstract class Entity extends Location implements Metadatable {
                 this.setNameTagVisible(this.namedTag.getBoolean("CustomNameVisible"));
             }
 
-            if (this.namedTag.contains("CustomNameAlwaysVisible")){
+            if (this.namedTag.contains("CustomNameAlwaysVisible")) {
                 this.setNameTagAlwaysVisible(this.namedTag.getBoolean("CustomNameAlwaysVisible"));
             }
         }
@@ -783,19 +783,32 @@ public abstract class Entity extends Location implements Metadatable {
     }
     
     public static CompoundTag getDefaultNBT(Vector3 pos) {
+        return getDefaultNBT(pos, null);
+    }
+
+    public static CompoundTag getDefaultNBT(Vector3 pos, Vector3 motion) {
         Location loc = pos instanceof Location ? (Location) pos : null;
+
+        if (loc != null) {
+            return getDefaultNBT(pos, motion, (float) loc.getYaw(), (float) loc.getPitch());
+        }
+
+        return getDefaultNBT(pos, motion, 0, 0);
+    }
+
+    public static CompoundTag getDefaultNBT(Vector3 pos, Vector3 motion, float yaw, float pitch) {
         return new CompoundTag()
                 .putList(new ListTag<DoubleTag>("Pos")
                         .add(new DoubleTag("", pos.x))
                         .add(new DoubleTag("", pos.y))
                         .add(new DoubleTag("", pos.z)))
                 .putList(new ListTag<DoubleTag>("Motion")
-                        .add(new DoubleTag("", 0))
-                        .add(new DoubleTag("", 0))
-                        .add(new DoubleTag("", 0)))
+                        .add(new DoubleTag("", motion != null ? motion.x : 0))
+                        .add(new DoubleTag("", motion != null ? motion.y : 0))
+                        .add(new DoubleTag("", motion != null ? motion.z : 0)))
                 .putList(new ListTag<FloatTag>("Rotation")
-                        .add(new FloatTag("", (float) (loc != null ? loc.getYaw() : 0)))
-                        .add(new FloatTag("", (float) (loc != null ? loc.getPitch() : 0))));
+                        .add(new FloatTag("", yaw))
+                        .add(new FloatTag("", pitch)));
     }
 
     public void saveNBT() {
@@ -1207,8 +1220,7 @@ public abstract class Entity extends Location implements Metadatable {
 
         if (this.y <= -16 && this.isAlive()) {
             if (this instanceof Player) {
-                Player player = (Player) this;
-                if (player.getGamemode() != Player.CREATIVE) this.attack(new EntityDamageEvent(this, DamageCause.VOID, 10));
+                if (((Player) this).getGamemode() != Player.CREATIVE) this.attack(new EntityDamageEvent(this, DamageCause.VOID, 10));
             } else {
                 this.attack(new EntityDamageEvent(this, DamageCause.VOID, 10));
                 hasUpdate = true;
@@ -1654,8 +1666,7 @@ public abstract class Entity extends Location implements Metadatable {
         Block block = this.level.getBlock(this.temporalVector.setComponents(NukkitMath.floorDouble(this.x), NukkitMath.floorDouble(y), NukkitMath.floorDouble(this.z)));
 
         if (block instanceof BlockWater) {
-            double f = (block.y + 1) - (((BlockWater) block).getFluidHeightPercent() - 0.1111111);
-            return y < f;
+            return y < (block.y + 1) - 0.1111111;
         }
 
         return false;
@@ -1665,8 +1676,7 @@ public abstract class Entity extends Location implements Metadatable {
         Block block = this.level.getBlock(this.temporalVector.setComponents(NukkitMath.floorDouble(this.x), NukkitMath.floorDouble(this.y), NukkitMath.floorDouble(this.z)));
 
         if (block instanceof BlockWater) {
-            double f = (block.y + 1) - (((BlockWater) block).getFluidHeightPercent() - 0.1111111);
-            return this.y < f;
+            return this.y < (block.y + 1) - 0.1111111;
         }
 
         return false;
@@ -2290,9 +2300,7 @@ public abstract class Entity extends Location implements Metadatable {
 
     @Override
     public int hashCode() {
-        int hash = 7;
-        hash = (int) (29 * hash + this.id);
-        return hash;
+        return (int) (203 + this.id);
     }
 
     public static Entity create(Object type, Position source, Object... args) {
