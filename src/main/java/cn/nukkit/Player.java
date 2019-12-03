@@ -312,7 +312,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     public void setBanned(boolean value) {
         if (value) {
             this.server.getNameBans().addBan(this.username, null, null, null);
-            this.kick(PlayerKickEvent.Reason.NAME_BANNED, "\u00A7cYou are banned!");
+            this.kick(PlayerKickEvent.Reason.NAME_BANNED, "You are banned!");
         } else {
             this.server.getNameBans().remove(this.username);
         }
@@ -1620,7 +1620,7 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     public boolean setMotion(Vector3 motion) {
         if (super.setMotion(motion)) {
             if (this.chunk != null) {
-                this.addMotion(this.motionX, this.motionY, this.motionZ);  // Send to others
+                this.addMotion(this.motionX, this.motionY, this.motionZ); // Send to others
                 SetEntityMotionPacket pk = new SetEntityMotionPacket();
                 pk.eid = this.id;
                 pk.motionX = (float) motion.x;
@@ -1866,13 +1866,14 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
 
     protected void processLogin() {
         if (!this.server.isWhitelisted((this.username).toLowerCase())) {
-            this.kick(PlayerKickEvent.Reason.NOT_WHITELISTED, this.getServer().getPropertyString("whitelist-reason", "Server is white-listed").replace("§n", "\n"));
+            this.kick(PlayerKickEvent.Reason.NOT_WHITELISTED, this.getServer().getPropertyString("whitelist-reason").replace("§n", "\n"));
             return;
         } else if (this.isBanned()) {
-            this.kick(PlayerKickEvent.Reason.NAME_BANNED, "\u00A7cYou are banned! Reason: " + this.server.getNameBans().getEntires().get(this.getName().toLowerCase()).getReason());
+            String reason = this.server.getNameBans().getEntires().get(this.getName().toLowerCase()).getReason();
+            this.kick(PlayerKickEvent.Reason.NAME_BANNED, "You are banned!" + (reason.isEmpty() ? "" : (" Reason: " + reason)));
             return;
-        } else if (this.server.getIPBans().isBanned(this.getAddress())) {
-            this.kick(PlayerKickEvent.Reason.IP_BANNED, "\u00A7cYou are banned! Reason: " + this.server.getNameBans().getEntires().get(this.getName().toLowerCase()).getReason());
+        } else if (!server.strongIPBans && this.server.getIPBans().isBanned(this.getAddress())) {
+            this.kick(PlayerKickEvent.Reason.IP_BANNED, "Your IP is banned!");
             return;
         }
 
@@ -2895,9 +2896,12 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
                 case ProtocolInfo.LEVEL_SOUND_EVENT_PACKET:
                 case ProtocolInfo.LEVEL_SOUND_EVENT_PACKET_V1:
                 case ProtocolInfo.LEVEL_SOUND_EVENT_PACKET_V2:
-                    if (!this.isSpectator() || (((LevelSoundEventPacket) packet).sound != LevelSoundEventPacket.SOUND_HIT && ((LevelSoundEventPacket) packet).sound != LevelSoundEventPacket.SOUND_ATTACK_NODAMAGE)) {
-                        this.level.addChunkPacket(this.getChunkX(), this.getChunkZ(), packet);
+                    if (this.isSpectator()) {
+                        if (((LevelSoundEventPacket) packet).sound == LevelSoundEventPacket.SOUND_HIT || ((LevelSoundEventPacket) packet).sound == LevelSoundEventPacket.SOUND_ATTACK_NODAMAGE || ((LevelSoundEventPacket) packet).sound == LevelSoundEventPacket.SOUND_ATTACK || ((LevelSoundEventPacket) packet).sound == LevelSoundEventPacket.SOUND_ATTACK_STRONG) {
+                            break;
+                        }
                     }
+                    this.level.addChunkPacket(this.getChunkX(), this.getChunkZ(), packet);
                     break;
                 case ProtocolInfo.INVENTORY_TRANSACTION_PACKET:
                     if (this.isSpectator()) {
