@@ -779,7 +779,7 @@ public class Level implements ChunkManager, Metadatable {
         updateBlockLight(lightQueue);
         this.checkTime();
         
-        if (stopTime || !this.gameRules.getBoolean(GameRule.DO_DAYLIGHT_CYCLE) || currentTick % 1200 == 0) {
+        if (/*stopTime || !this.gameRules.getBoolean(GameRule.DO_DAYLIGHT_CYCLE) ||*/ currentTick % 2400 == 0) {
             this.sendTime();
         }
 
@@ -2127,7 +2127,7 @@ public class Level implements ChunkManager, Metadatable {
             hand.position(block);
         }
 
-        if (!hand.canPassThrough() && hand.getBoundingBox() != null) {
+        /*if (!hand.canPassThrough() && hand.getBoundingBox() != null) {
             Entity[] entities = this.getCollidingEntities(hand.getBoundingBox());
             int realCount = 0;
             for (Entity e : entities) {
@@ -2137,19 +2137,19 @@ public class Level implements ChunkManager, Metadatable {
                 ++realCount;
             }
 
-            /*if (player != null) {
+            if (player != null) {
                 Vector3 diff = player.getNextPosition().subtract(player.getPosition());
                 if (diff.lengthSquared() > 0.00001) {
                     if (hand.getBoundingBox().intersectsWith(player.getBoundingBox().getOffsetBoundingBox(diff.x, diff.y, diff.z))) {
                         ++realCount;
                     }
                 }
-            }*/
+            }
 
             if (realCount > 0) {
                 return null;
             }
-        }
+        }*/
 
         if (player != null) {
             BlockPlaceEvent event = new BlockPlaceEvent(player, hand, block, target, item);
