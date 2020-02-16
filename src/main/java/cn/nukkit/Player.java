@@ -1094,8 +1094,10 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         this.setDataFlag(DATA_PLAYER_FLAGS, DATA_PLAYER_FLAG_SLEEP, true);
 
         if (this.getServer().bedSpawnpoints) {
-            this.setSpawn(pos);
-            this.sendTranslation("tile.bed.respawnSet");
+            if (!this.getSpawn().equals(pos)) {
+                this.setSpawn(pos);
+                this.sendTranslation("tile.bed.respawnSet");
+            }
         }
 
         this.level.sleepTicks = 60;
@@ -3894,8 +3896,8 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
         }
 
         PlayerDeathEvent ev = new PlayerDeathEvent(this, this.getDrops(), new TranslationContainer(message, params.toArray(new String[0])), this.expLevel);
-        ev.setKeepExperience(this.level.gameRules.getBoolean(GameRule.KEEP_INVENTORY));
-        ev.setKeepInventory(ev.getKeepExperience());
+        ev.setKeepInventory(this.level.gameRules.getBoolean(GameRule.KEEP_INVENTORY));
+        ev.setKeepExperience(ev.getKeepInventory());
         this.server.getPluginManager().callEvent(ev);
 
         if (!ev.isCancelled()) {
