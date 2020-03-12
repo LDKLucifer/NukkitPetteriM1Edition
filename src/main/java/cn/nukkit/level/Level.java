@@ -1445,8 +1445,7 @@ public class Level implements ChunkManager, Metadatable {
         for (int z = minZ; z <= maxZ; ++z) {
             for (int x = minX; x <= maxX; ++x) {
                 for (int y = minY; y <= maxY; ++y) {
-                    Vector3 vec = this.temporalVector.setComponents(x, y, z);
-                    Block block = this.getBlock(vec, false);
+                    Block block = this.getBlock(this.temporalVector.setComponents(x, y, z), false);
                     if (!block.canPassThrough() && block.collidesWithBB(bb)) {
                         collides.add(block.getBoundingBox());
                     }
@@ -2069,9 +2068,9 @@ public class Level implements ChunkManager, Metadatable {
             return null;
         }
 
-        if (target.getId() == Item.AIR) {
+        /*if (target.getId() == Item.AIR) {
             return null;
-        }
+        }*/
 
         if (player != null) {
             PlayerInteractEvent ev = new PlayerInteractEvent(player, item, target, face, Action.RIGHT_CLICK_BLOCK);
