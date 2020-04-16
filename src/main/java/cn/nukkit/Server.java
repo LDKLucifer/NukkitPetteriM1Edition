@@ -206,6 +206,7 @@ public class Server {
     private boolean forceResources;
     private boolean whitelistEnabled;
     private boolean forceGamemode;
+    private boolean asyncAutosave;
     public int despawnTicks;
     public boolean netherEnabled;
     public boolean xboxAuth;
@@ -281,7 +282,7 @@ public class Server {
 
         ServerScheduler.WORKERS = (int) poolSize;
 
-        Zlib.setProvider(this.getPropertyInt("zlib-provider", 0));
+        Zlib.setProvider(this.getPropertyInt("zlib-provider", 2));
 
         this.networkCompressionLevel = this.getPropertyInt("compression-level", 4);
         this.networkCompressionAsync = this.getPropertyBoolean("async-compression", false);
@@ -470,8 +471,10 @@ public class Server {
                 String latest = "git-" + new JsonParser().parse(content).getAsJsonObject().get("sha").getAsString().substring(0, 7);
                 content.close();
 
-                if (!this.getNukkitVersion().equals(latest) && !this.getNukkitVersion().equals("git-null")) {
+                if (!this.getNukkitVersion().equals(latest) && !this.getNukkitVersion().equals("git-null") && Nukkit.isMasterBranchBuild()) {
                     this.getLogger().info("\u00A7c[Update] \u00A7eThere is a new build of Nukkit PetteriM1 Edition available! Current: " + this.getNukkitVersion() + " Latest: " + latest);
+                } else if (!Nukkit.isMasterBranchBuild()) {
+                    this.getLogger().warning("\u00A7eYou are running a dev build! Do not use in production!");
                 }
 
                 this.getLogger().debug("Update check done");
@@ -1038,7 +1041,7 @@ public class Server {
 
             for (Level level : this.levelArray) {
                 if (!nonAutoSaveWorlds.contains(level.getName())) {
-                    this.scheduler.scheduleTask(null, level::save, true);
+                    this.scheduler.scheduleTask(null, level::save, asyncAutosave);
                 }
             }
             Timings.levelSaveTimer.stopTiming();
@@ -2111,7 +2114,8 @@ public class Server {
         this.spawnAnimals = this.getPropertyBoolean("spawn-animals", true);
         this.spawnMobs = this.getPropertyBoolean("spawn-mobs", true);
         this.autoSaveTicks = this.getPropertyInt("ticks-per-autosave", 6000);
-        this.doNotLimitSkinGeometry = this.getPropertyBoolean("do-not-limit-skin-geometry", false);
+        this.doNotLimitSkinGeometry = this.getPropertyBoolean("do-not-limit-skin-geometry", true);
+        this.forceGamemode = this.getPropertyBoolean("async-autosave", false);
         try {
             this.gamemode = this.getPropertyInt("gamemode", 0) & 0b11;
         } catch (NumberFormatException exception) {
@@ -2174,7 +2178,7 @@ public class Server {
             put("query-plugins", false);
             put("debug-level", 1);
             put("async-workers", "auto");
-            put("zlib-provider", 0);
+            put("zlib-provider", 2);
             put("async-compression", false);
             put("compression-level", 4);
             put("auto-tick-rate", true);
@@ -2225,7 +2229,8 @@ public class Server {
             put("skin-change-cooldown", 30);
             put("check-op-movement", false);
             put("do-not-limit-interactions", false);
-            put("do-not-limit-skin-geometry", false);
+            put("do-not-limit-skin-geometry", true);
+            put("async-autosave", false);
         }
     }
 
