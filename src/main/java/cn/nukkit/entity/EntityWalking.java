@@ -102,7 +102,7 @@ public abstract class EntityWalking extends BaseEntity {
 
         Block block = that.getSide(this.getHorizontalFacing());
         Block down = block.down();
-        if (down.isTransparent() && block.isTransparent() && down.down().isTransparent()) {
+        if (!down.isSolid() && !block.isSolid() && !down.down().isSolid()) {
             this.stayTime = 10; // "hack": try to make mobs not to be so suicidal
         } else if (!block.canPassThrough() && block.up().canPassThrough() && that.up(2).canPassThrough()) {
             if (block instanceof BlockFence || block instanceof BlockFenceGate) {
@@ -199,7 +199,8 @@ public abstract class EntityWalking extends BaseEntity {
                 if (this.onGround) {
                     this.motionY = 0;
                 } else if (this.motionY > -this.getGravity() * 4) {
-                    if (!(this.level.getBlock(new Vector3(NukkitMath.floorDouble(this.x), (int) (this.y + 0.8), NukkitMath.floorDouble(this.z))) instanceof BlockLiquid)) {
+                    int b = this.level.getBlockIdAt(NukkitMath.floorDouble(this.x), (int) (this.y + 0.8), NukkitMath.floorDouble(this.z));
+                    if (b != Block.WATER && b != Block.STILL_WATER && b != Block.LAVA && b != Block.STILL_LAVA) {
                         this.motionY -= this.getGravity();
                     }
                 } else {
