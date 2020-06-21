@@ -1809,7 +1809,21 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
             this.dummyBossBars.values().forEach(DummyBossBar::updateBossEntityPosition);
         }
 
+        updateBlockingFlag();
+
         return true;
+    }
+
+    private void updateBlockingFlag() {
+        boolean shieldInHand = this.getInventory().getItemInHand().getId() == ItemID.SHIELD;
+        boolean shieldInOffhand = this.getOffhandInventory().getItem(0).getId() == ItemID.SHIELD;
+        if (isBlocking()) {
+            if (!isSneaking() || (!shieldInHand && !shieldInOffhand)) {
+                this.setBlocking(false);
+            }
+        } else if (isSneaking() && (shieldInHand || shieldInOffhand)) {
+            this.setBlocking(true);
+        }
     }
 
     public void checkInteractNearby() {
@@ -5245,6 +5259,19 @@ public class Player extends EntityHuman implements CommandSender, InventoryHolde
     @Override
     public boolean doesTriggerPressurePlate() {
         return this.gamemode != SPECTATOR;
+    }
+
+    @Override
+    protected void onBlock(Entity entity, boolean animate) {
+        super.onBlock(entity, animate);
+        if (animate) {
+            this.setDataFlag(DATA_FLAGS, DATA_FLAG_SHIELD_SHAKING, true);
+            this.getServer().getScheduler().scheduleTask(null, ()-> {
+                if (this.isOnline()) {
+                    this.setDataFlag(DATA_FLAGS, DATA_FLAG_SHIELD_SHAKING, false);
+                }
+            });
+        }
     }
 
     @Override
