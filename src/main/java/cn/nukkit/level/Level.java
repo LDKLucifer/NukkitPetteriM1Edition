@@ -3313,8 +3313,15 @@ public class Level implements ChunkManager, Metadatable {
     }
 
     public Position getSafeSpawn(Vector3 spawn) {
-        if (spawn == null || spawn.y < 1) {
+        if (spawn == null /*|| spawn.y < 1*/) {
             spawn = this.getSpawnLocation();
+        }
+
+        // Hack: Fix the y1 glitch, do not teleport players standing at y=1 to spawn on join
+        // For some reason player's y coord is 0.999 instead of 1 when they join
+        // This may need a better fix later
+        if (spawn.y < 1) {
+            spawn.y = 1.01;
         }
 
         if (spawn != null) {
@@ -3512,7 +3519,7 @@ public class Level implements ChunkManager, Metadatable {
     public void doGarbageCollection(long allocatedTime) {
         long start = System.currentTimeMillis();
         if (unloadChunks(start, allocatedTime, false)) {
-            allocatedTime = allocatedTime - (System.currentTimeMillis() - start);
+            allocatedTime -= (System.currentTimeMillis() - start);
             provider.doGarbageCollection(allocatedTime);
         }
     }
@@ -3609,8 +3616,8 @@ public class Level implements ChunkManager, Metadatable {
             }
 
             if (toUnload != null) {
-                long[] arr = toUnload.toLongArray();
-                for (long index : arr) {
+                //long[] arr = toUnload.toLongArray();
+                for (long index : toUnload) {
                     int X = getHashX(index);
                     int Z = getHashZ(index);
                     if (this.unloadChunk(X, Z, true)) {
