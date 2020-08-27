@@ -135,7 +135,7 @@ public class Level implements ChunkManager, Metadatable {
 
     private final Long2ObjectOpenHashMap<Player> players = new Long2ObjectOpenHashMap<>();
 
-    private final Long2ObjectOpenHashMap<Entity> entities = new Long2ObjectOpenHashMap<>();
+    public final Long2ObjectOpenHashMap<Entity> entities = new Long2ObjectOpenHashMap<>();
 
     public final Long2ObjectOpenHashMap<Entity> updateEntities = new Long2ObjectOpenHashMap<>();
 
@@ -3880,11 +3880,16 @@ public class Level implements ChunkManager, Metadatable {
     }
 
     public void addLevelEvent(Vector3 pos, int event) {
+        this.addLevelEvent(pos, event, 0);
+    }
+
+    public void addLevelEvent(Vector3 pos, int event, int data) {
         LevelEventPacket pk = new LevelEventPacket();
         pk.evid = event;
         pk.x = (float) pos.x;
         pk.y = (float) pos.y;
         pk.z = (float) pos.z;
+        pk.data = data;
 
         addChunkPacket(pos.getFloorX() >> 4, pos.getFloorZ() >> 4, pk);
     }
@@ -4137,6 +4142,24 @@ public class Level implements ChunkManager, Metadatable {
         }
 
         return false;
+    }
+
+    public Position calculatePortalMirror(Vector3 portal) {
+        Level nether = Server.getInstance().getLevelByName("nether");
+        if (nether == null) {
+            return null;
+        }
+
+        double x;
+        double z;
+        if (this == nether) {
+            x = Math.floor(portal.getFloorX() << 3);
+            z = Math.floor(portal.getFloorZ() << 3);
+        } else {
+            x = Math.floor(portal.getFloorX() / 8);
+            z = Math.floor(portal.getFloorZ() / 8);
+        }
+        return new Position(x, portal.getFloorY(), z, this == nether? Server.getInstance().getDefaultLevel() : nether);
     }
 
     private ConcurrentMap<Long, Int2ObjectMap<Player>> getChunkSendQueue(int protocol) {

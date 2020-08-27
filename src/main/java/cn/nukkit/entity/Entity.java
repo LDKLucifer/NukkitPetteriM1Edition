@@ -314,6 +314,7 @@ public abstract class Entity extends Location implements Metadatable {
     public int fireTicks = 0;
     public int inPortalTicks = 0;
     public int inEndPortalTicks = 0;
+    public Position portalPos = null;
 
     public float scale = 1;
 
@@ -1358,7 +1359,7 @@ public abstract class Entity extends Location implements Metadatable {
             }
         }
 
-        if (this.inPortalTicks == 80 && Server.getInstance().netherEnabled && this instanceof BaseEntity) {
+        if (this.inPortalTicks == 80 && Server.getInstance().isNetherAllowed() && this instanceof BaseEntity) {
             EntityPortalEnterEvent ev = new EntityPortalEnterEvent(this, EntityPortalEnterEvent.PortalType.NETHER);
             this.server.getPluginManager().callEvent(ev);
 
