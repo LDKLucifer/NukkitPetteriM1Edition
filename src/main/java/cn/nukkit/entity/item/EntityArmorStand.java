@@ -209,7 +209,7 @@ public class EntityArmorStand extends Entity implements InventoryHolder {
         SetEntityDataPacket setEntityDataPacket = new SetEntityDataPacket();
         setEntityDataPacket.eid = this.getId();
         setEntityDataPacket.metadata = this.getDataProperties();
-        Server.getInstance().getOnlinePlayers().values().forEach(all -> all.dataPacket(setEntityDataPacket));
+        getViewers().values().forEach(all -> all.dataPacket(setEntityDataPacket));
     }
 
     @Override
@@ -261,7 +261,7 @@ public class EntityArmorStand extends Entity implements InventoryHolder {
         }
 
         boolean hasUpdate = super.attack(source);
-        if (!hasUpdate){
+        if (!hasUpdate) {
             return false;
         }
 
@@ -272,7 +272,7 @@ public class EntityArmorStand extends Entity implements InventoryHolder {
 
             if (source instanceof EntityDamageByEntityEvent) {
                 EntityDamageByEntityEvent event = (EntityDamageByEntityEvent) source;
-                if (event.getDamager() instanceof Player){
+                if (event.getDamager() instanceof Player) {
                     Player player = (Player) event.getDamager();
                     if (player.isCreative()) {
                         this.level.addParticle(new DestroyBlockParticle(this, Block.get(Block.WOODEN_PLANKS)));
