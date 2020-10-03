@@ -12,14 +12,9 @@ import cn.nukkit.event.entity.EntityDamageEvent.DamageCause;
 import cn.nukkit.event.player.PlayerInteractEvent;
 import cn.nukkit.event.player.PlayerInteractEvent.Action;
 import cn.nukkit.event.player.PlayerTeleportEvent;
-import cn.nukkit.inventory.Inventory;
-import cn.nukkit.inventory.PlayerInventory;
 import cn.nukkit.item.Item;
-import cn.nukkit.item.ItemTotem;
-import cn.nukkit.level.GameRule;
-import cn.nukkit.level.Level;
-import cn.nukkit.level.Location;
-import cn.nukkit.level.Position;
+import cn.nukkit.item.ItemID;
+import cn.nukkit.level.*;
 import cn.nukkit.level.format.FullChunk;
 import cn.nukkit.math.*;
 import cn.nukkit.metadata.MetadataValue;
@@ -1131,11 +1126,18 @@ public abstract class Entity extends Location implements Metadatable {
         if (newHealth < 1 && this.isPlayer) {
             if (source.getCause() != DamageCause.VOID && source.getCause() != DamageCause.SUICIDE) {
                 Player p = (Player) this;
-                Inventory inventory = p.getOffhandInventory();
-                Item totem = Item.get(Item.TOTEM, 0, 1);
-                if (inventory.contains(totem) || ((PlayerInventory) (inventory = p.getInventory())).getItemInHand() instanceof ItemTotem) {
-                    inventory.removeItem(totem);
+                boolean totem = false;
+                if (p.getOffhandInventory().getItemFast(0).getId() == ItemID.TOTEM) {
+                    p.getOffhandInventory().clear(0);
+                    totem = true;
+                } else if (p.getInventory().getItemInHandFast().getId() == ItemID.TOTEM) {
+                    p.getInventory().clear(p.getInventory().getHeldItemIndex());
+                    totem = true;
+                }
+                if (totem) {
                     this.getLevel().addLevelEvent(this, LevelEventPacket.EVENT_SOUND_TOTEM);
+                    this.getLevel().addParticleEffect(this, ParticleEffect.TOTEM);
+
                     this.extinguish();
                     this.removeAllEffects();
                     this.setHealth(1);
@@ -1683,7 +1685,7 @@ public abstract class Entity extends Location implements Metadatable {
 
             if (fallDistance > 0) {
                 // check if we fell into at least 1 block of water
-                if (this instanceof EntityLiving && !(this.getLevelBlock() instanceof BlockWater)) {
+                if (this instanceof EntityLiving && !(this.getLevelBlock() instanceof BlockWater) && !(this instanceof EntityFlying)) {
                     this.fall(fallDistance);
                 }
                 this.resetFallDistance();
@@ -1908,12 +1910,12 @@ public abstract class Entity extends Location implements Metadatable {
     }
 
     public boolean move(double dx, double dy, double dz) {
-        if (!this.isPlayer) {
-            this.blocksAround = null;
-        }
-
         if (dx == 0 && dz == 0 && dy == 0) {
             return true;
+        }
+
+        if (!this.isPlayer) {
+            this.blocksAround = null;
         }
 
         if (this.keepMovement) {
@@ -2525,7 +2527,7 @@ public abstract class Entity extends Location implements Metadatable {
 
     public boolean isOnLadder() {
         int b = this.level.getBlockIdAt(this.getFloorX(), this.getFloorY(), this.getFloorZ());
-        return b == Block.LADDER || b == Block.VINES;
+        return b == Block.LADDER || b == Block.VINES || b == Block.COBWEB;
     }
 
     public float getMountedYOffset() {

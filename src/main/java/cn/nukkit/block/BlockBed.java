@@ -8,7 +8,6 @@ import cn.nukkit.entity.Entity;
 import cn.nukkit.entity.item.EntityPrimedTNT;
 import cn.nukkit.item.Item;
 import cn.nukkit.item.ItemBed;
-import cn.nukkit.lang.TranslationContainer;
 import cn.nukkit.level.Level;
 import cn.nukkit.math.AxisAlignedBB;
 import cn.nukkit.math.BlockFace;
@@ -20,6 +19,7 @@ import cn.nukkit.nbt.tag.ListTag;
 import cn.nukkit.utils.BlockColor;
 import cn.nukkit.utils.DyeColor;
 import cn.nukkit.utils.Faceable;
+import cn.nukkit.utils.Utils;
 
 /**
  * @author MagicDroidX
@@ -74,7 +74,7 @@ public class BlockBed extends BlockTransparentMeta implements Faceable {
 
     @Override
     public boolean onActivate(Item item, Player player) {
-        if (this.level.getDimension() == Level.DIMENSION_NETHER || this.level.getDimension() == Level.DIMENSION_THE_END) {
+        if (this.level.getDimension() != Level.DIMENSION_OVERWORLD) {
             this.level.useBreakOn(this);
             CompoundTag nbt = new CompoundTag()
                     .putList(new ListTag<DoubleTag>("Pos")
@@ -98,7 +98,7 @@ public class BlockBed extends BlockTransparentMeta implements Faceable {
         boolean isNight = (time >= Level.TIME_NIGHT && time < Level.TIME_SUNRISE);
 
         if (player != null && !isNight) {
-            player.sendMessage(new TranslationContainer("tile.bed.noSleep"));
+            player.sendTranslation("§7%tile.bed.noSleep");
             return true;
         }
 
@@ -121,15 +121,34 @@ public class BlockBed extends BlockTransparentMeta implements Faceable {
                 b = blockWest;
             } else {
                 if (player != null) {
-                    player.sendMessage(new TranslationContainer("tile.bed.notValid"));
+                    player.sendTranslation("§7%tile.bed.notValid");
                 }
 
                 return true;
             }
         }
 
-        if (player != null && !player.sleepOn(b)) {
-            player.sendMessage(new TranslationContainer("tile.bed.occupied"));
+        if (player != null) {
+            if (player.distanceSquared(this) > 36) {
+                player.sendTranslation("§7%tile.bed.tooFar");
+                return true;
+            }
+
+            if (!player.isCreative()) {
+                BlockFace secondPart = this.getBlockFace().getOpposite();
+                AxisAlignedBB checkArea = new AxisAlignedBB(b.x - 8, b.y - 6.5, b.z - 8, b.x + 9, b.y + 5.5, b.z + 9).addCoord(secondPart.getXOffset(), 0, secondPart.getZOffset());
+
+                for (Entity entity : this.getLevel().getCollidingEntities(checkArea)) {
+                    if (!entity.isClosed() && Utils.monstersList.contains(entity.getNetworkId())) {
+                        player.sendTranslation("§7%tile.bed.notSafe");
+                        return true;
+                    }
+                }
+            }
+
+            if (!player.sleepOn(b)) {
+                player.sendTranslation("§7%tile.bed.occupied");
+            }
         }
 
         return true;

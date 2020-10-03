@@ -3992,7 +3992,7 @@ public class Level implements ChunkManager, Metadatable {
         return !entity.isOnFire() && !this.raining && !entity.isBaby() && (time < 12567 || time > 23450) && !entity.isInsideOfWater() && this.canBlockSeeSky(entity);
     }
 
-    public boolean isSpawningAllowed() {
+    public boolean isMobSpawningAllowed() {
         return !Server.disabledSpawnWorlds.contains(getName()) && gameRules.getBoolean(GameRule.DO_MOB_SPAWNING);
     }
 
@@ -4231,8 +4231,8 @@ public class Level implements ChunkManager, Metadatable {
             x = Math.floor(portal.getFloorX() << 3);
             z = Math.floor(portal.getFloorZ() << 3);
         } else {
-            x = Math.floor(portal.getFloorX() / 8);
-            z = Math.floor(portal.getFloorZ() / 8);
+            x = Math.floor(portal.getFloorX() >> 3);
+            z = Math.floor(portal.getFloorZ() >> 3);
         }
         return new Position(x, portal.getFloorY(), z, this == nether? Server.getInstance().getDefaultLevel() : nether);
     }
