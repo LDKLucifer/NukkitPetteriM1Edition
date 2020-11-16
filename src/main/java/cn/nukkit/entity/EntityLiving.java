@@ -6,6 +6,7 @@ import cn.nukkit.block.Block;
 import cn.nukkit.entity.data.ShortEntityData;
 import cn.nukkit.entity.mob.EntityDrowned;
 import cn.nukkit.entity.projectile.EntityProjectile;
+import cn.nukkit.entity.weather.EntityWeather;
 import cn.nukkit.event.entity.*;
 import cn.nukkit.event.entity.EntityDamageEvent.DamageCause;
 import cn.nukkit.item.Item;
@@ -162,7 +163,7 @@ public abstract class EntityLiving extends Entity implements EntityDamageable {
 
     protected boolean blockedByShield(EntityDamageEvent source) {
         Entity damager = source instanceof EntityDamageByEntityEvent? ((EntityDamageByEntityEvent) source).getDamager() : null;
-        if (damager == null || !this.isBlocking()) {
+        if (damager == null || !this.isBlocking() || damager instanceof EntityWeather) {
             return false;
         }
 
@@ -269,7 +270,8 @@ public abstract class EntityLiving extends Entity implements EntityDamageable {
     public boolean entityBaseTick(int tickDiff) {
         if (Timings.livingEntityBaseTickTimer != null) Timings.livingEntityBaseTickTimer.startTiming();
 
-        boolean isBreathing = !this.isSubmerged();
+        boolean inWater = this.isSubmerged();
+        boolean isBreathing = !inWater;
         if (this instanceof Player && (((Player) this).isCreative() || ((Player) this).isSpectator())) {
             isBreathing = true;
         }
@@ -286,20 +288,22 @@ public abstract class EntityLiving extends Entity implements EntityDamageable {
         }
 
         // HACK!
-        if (this instanceof Player && ((Player) this).protocol <= 282) {
-            if (((Player) this).protocol <= 201) {
-                this.setDataFlagSelfOnly(DATA_FLAGS, 33, isBreathing);
+        if (this instanceof Player) {
+            if (((Player) this).protocol <= 282) {
+                if (((Player) this).protocol <= 201) {
+                    this.setDataFlagSelfOnly(DATA_FLAGS, 33, isBreathing);
+                } else {
+                    this.setDataFlagSelfOnly(DATA_FLAGS, 34, isBreathing);
+                }
             } else {
-                this.setDataFlagSelfOnly(DATA_FLAGS, 34, isBreathing);
+                this.setDataFlagSelfOnly(DATA_FLAGS, DATA_FLAG_BREATHING, isBreathing);
             }
-        } else {
-            this.setDataFlagSelfOnly(DATA_FLAGS, DATA_FLAG_BREATHING, isBreathing);
         }
 
         boolean hasUpdate = super.entityBaseTick(tickDiff);
 
         if (this.isAlive()) {
-            if (this.isInsideOfSolid() && !this.isSubmerged()) {
+            if (this.isInsideOfSolid() && !inWater) {
                 hasUpdate = true;
                 this.attack(new EntityDamageEvent(this, DamageCause.SUFFOCATION, 1));
             }
@@ -308,7 +312,7 @@ public abstract class EntityLiving extends Entity implements EntityDamageable {
                 this.resetFallDistance();
             }
 
-            if (!this.hasEffect(Effect.WATER_BREATHING) && this.isSubmerged()) {
+            if (!this.hasEffect(Effect.WATER_BREATHING) && inWater) {
                 if (this instanceof EntitySwimming || this.isDrowned || (this instanceof Player && (((Player) this).isCreative() || ((Player) this).isSpectator()))) {
                     this.setAirTicks(400);
                 } else {
@@ -363,18 +367,18 @@ public abstract class EntityLiving extends Entity implements EntityDamageable {
                     }
                 }
             }
-        }
 
-        if (this.attackTime > 0) {
-            this.attackTime -= tickDiff;
-            hasUpdate = true;
-        }
+            if (this.attackTime > 0) {
+                this.attackTime -= tickDiff;
+                hasUpdate = true;
+            }
 
-        if (this.riding == null) {
-            Entity[] e = level.getNearbyEntities(this.boundingBox.grow(0.20000000298023224, 0.0D, 0.20000000298023224), this);
-            for (Entity entity : e) {
-                if (entity instanceof EntityRideable) {
-                    this.collidingWith(entity);
+            if (this.riding == null) {
+                Entity[] e = level.getNearbyEntities(this.boundingBox.grow(0.20000000298023224, 0.0D, 0.20000000298023224), this);
+                for (Entity entity : e) {
+                    if (entity instanceof EntityRideable) {
+                        this.collidingWith(entity);
+                    }
                 }
             }
         }
